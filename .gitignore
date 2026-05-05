@@ -1,0 +1,18 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Publish outputs
+publish/
+publish-portable/
+publish-slim/
+
+# Local runtime config
+config.json
+
+# Large local model asset
+ggml-small.bin
