@@ -16,6 +16,7 @@ public sealed class BlitztextApp : IDisposable
     private readonly AudioRecorder   _recorder;
     private readonly HotkeyListener  _hotkeys;
     public  readonly TrayManager     Tray;
+    private bool                     _apiAvailable;
 
     private readonly SemaphoreSlim   _pipelineLock = new(1, 1);
     private volatile bool            _recordingActive;
@@ -35,10 +36,13 @@ public sealed class BlitztextApp : IDisposable
     {
         _config   = config;
         _recorder = new AudioRecorder();
+        _apiAvailable = !string.IsNullOrWhiteSpace(_config.ApiKey);
 
         Tray = new TrayManager(
             onOpenSettings: () => OnOpenSettings?.Invoke(),
             onQuit: Quit);
+
+        LocalTranscriber.LoadStatusChanged += OnLocalModelLoadStatusChanged;
 
         _hotkeys = new HotkeyListener(
             getHotkeys:    () => _config.Hotkeys,
@@ -49,6 +53,7 @@ public sealed class BlitztextApp : IDisposable
         _hotkeys.Start();
         AppLog.Add("Blitztext gestartet — bereit");
         AppLog.Add($"Aufnahmemodus: {_config.RecordMode}");
+        RefreshTrayStatus();
 
         // Lokales Modell sofort im Hintergrund laden, damit der erste Hotkey nicht wartet
         if (_config.TranscribeMode == "local" && LocalTranscriber.ModelExists(_config.LocalModelPath))
@@ -66,6 +71,27 @@ public sealed class BlitztextApp : IDisposable
                 }
             });
         }
+    }
+
+    private void OnLocalModelLoadStatusChanged(bool success, string? error)
+    {
+        RefreshTrayStatus();
+    }
+
+    public void RefreshTrayStatus()
+    {
+        Tray.SetStatus(GetIdleTrayStatus());
+    }
+
+    private TrayStatus GetIdleTrayStatus()
+    {
+        if (_config.TranscribeMode == "local")
+            return LocalTranscriber.IsModelLoaded ? TrayStatus.Ready : TrayStatus.Error;
+
+        if (string.IsNullOrWhiteSpace(_config.ApiKey))
+            return TrayStatus.Error;
+
+        return _apiAvailable ? TrayStatus.Ready : TrayStatus.Error;
     }
 
     // ── hotkey callbacks (called from hook thread) ────────────────────
@@ -119,7 +145,7 @@ public sealed class BlitztextApp : IDisposable
             AppLog.SetError($"Mikrofon-Fehler beim Starten: {ex.Message}");
             Tray.SetStatus(TrayStatus.Error);
             OnOverlayHide?.Invoke();
-            _ = Task.Delay(3000).ContinueWith(_ => Tray.SetStatus(TrayStatus.Ready));
+            _ = Task.Delay(3000).ContinueWith(_ => RefreshTrayStatus());
             return false;
         }
         finally
@@ -166,7 +192,7 @@ public sealed class BlitztextApp : IDisposable
         catch (Exception ex)
         {
             AppLog.SetError($"Mikrofon-Fehler beim Stoppen: {ex.Message}");
-            Tray.SetStatus(TrayStatus.Ready);
+            RefreshTrayStatus();
             OnOverlayHide?.Invoke();
             _pipelineLock.Release();
             return;
@@ -175,7 +201,7 @@ public sealed class BlitztextApp : IDisposable
         if (audio == null)
         {
             AppLog.Add("Keine Audiodaten — zu kurze Aufnahme?");
-            Tray.SetStatus(TrayStatus.Ready);
+            RefreshTrayStatus();
             OnOverlayHide?.Invoke();
             _pipelineLock.Release();
             return;
@@ -213,6 +239,7 @@ public sealed class BlitztextApp : IDisposable
                                      ? [.. _config.ProperNouns]
                                      : null,
                     model: _config.ActiveWhisperModel);
+                _apiAvailable = true;
             }
 
             AppLog.Add($"Transkript ({mode}): {transcript}");
@@ -230,6 +257,9 @@ public sealed class BlitztextApp : IDisposable
                 model:           _config.ActiveChatModel,
                 temperature:     _config.Temperature,
                 maxTokens:       _config.MaxTokens);
+
+            if (_config.TranscribeMode != "local" && mode != "normal")
+                _apiAvailable = true;
 
             if (mode != "normal")
                 AppLog.Add($"Verarbeitet ({mode}): {result}");
@@ -259,10 +289,12 @@ public sealed class BlitztextApp : IDisposable
         }
         catch (Exception ex)
         {
+            if (_config.TranscribeMode != "local")
+                _apiAvailable = false;
             AppLog.SetError(ex.Message);
             Tray.SetStatus(TrayStatus.Error);
             OnOverlayHide?.Invoke();
-            _ = Task.Delay(3000).ContinueWith(_ => Tray.SetStatus(TrayStatus.Ready));
+            _ = Task.Delay(3000).ContinueWith(_ => RefreshTrayStatus());
             return;
         }
         finally
@@ -274,13 +306,14 @@ public sealed class BlitztextApp : IDisposable
         // Set Ready AFTER lock release so a new recording that started immediately
         // doesn't get overwritten by this Ready call.
         if (!_recordingActive)
-            Tray.SetStatus(TrayStatus.Ready);
+            RefreshTrayStatus();
     }
 
     // ── lifecycle ─────────────────────────────────────────────────────
 
     public void Quit()
     {
+        LocalTranscriber.LoadStatusChanged -= OnLocalModelLoadStatusChanged;
         _hotkeys.Stop();
         _recorder.Dispose();
         Tray.Dispose();
@@ -289,6 +322,7 @@ public sealed class BlitztextApp : IDisposable
 
     public void Dispose()
     {
+        LocalTranscriber.LoadStatusChanged -= OnLocalModelLoadStatusChanged;
         _hotkeys.Stop();
         _recorder.Dispose();
         Tray.Dispose();

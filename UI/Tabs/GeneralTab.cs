@@ -60,22 +60,29 @@ public class GeneralTab : UserControl
             card.Children.Add(MakeHeader("API Key"));
             card.Children.Add(MakeHint("OpenAI (sk-…) oder Groq (gsk_…)"));
 
-            var row = new DockPanel { LastChildFill = true };
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var inputHost = new Grid();
+            Grid.SetColumn(inputHost, 0);
+            row.Children.Add(inputHost);
+
             _toggleBtn = new Button { Content = "Anzeigen", Width = 80,
                 Margin = new Thickness(8, 0, 0, 0) };
             _toggleBtn.Click += ToggleKeyVisibility;
-            DockPanel.SetDock(_toggleBtn, Dock.Right);
+            Grid.SetColumn(_toggleBtn, 1);
             row.Children.Add(_toggleBtn);
 
             _apiKeyPwd = new PasswordBox { PasswordChar = '●' };
             _apiKeyPwd.SetResourceReference(StyleProperty, "PasswordInput");
-            row.Children.Add(_apiKeyPwd);
+            inputHost.Children.Add(_apiKeyPwd);
 
             _apiKeyBox = new TextBox { Visibility = Visibility.Collapsed };
             _apiKeyBox.SetResourceReference(StyleProperty, "Input");
+            inputHost.Children.Add(_apiKeyBox);
 
             card.Children.Add(row);
-            card.Children.Add(_apiKeyBox);
         });
         stack.Children.Add(_apiKeyCard);
 

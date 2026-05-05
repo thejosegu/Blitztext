@@ -10,7 +10,7 @@ public enum TrayStatus { Ready, Recording, Processing, Error }
 
 /// <summary>
 /// Win32 Shell_NotifyIcon tray icon manager.
-/// Generates icons at runtime via GDI+ (no external icon file required).
+/// Generates a lightning-bolt status icon at runtime via GDI+.
 /// </summary>
 public sealed class TrayManager : IDisposable
 {
@@ -163,26 +163,51 @@ public sealed class TrayManager : IDisposable
         using var bmp = new Bitmap(64, 64);
         using var g   = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
 
-        Color fill = status switch
+        Color boltColor = status switch
         {
             TrayStatus.Recording  => Color.FromArgb(220, 60, 60),
             TrayStatus.Processing => Color.FromArgb(230, 180, 0),
-            TrayStatus.Error      => Color.FromArgb(200, 50, 50),
-            _                     => Color.FromArgb(0, 160, 220),
+            TrayStatus.Error      => Color.FromArgb(150, 150, 150),
+            _                     => Color.FromArgb(255, 255, 255),
         };
 
-        g.FillEllipse(new SolidBrush(fill), 4, 4, 56, 56);
+        using var outerRing = new SolidBrush(Color.FromArgb(255, 14, 122, 209));
+        using var innerDisc = new SolidBrush(Color.FromArgb(255, 20, 20, 20));
+        using var shadow = new SolidBrush(Color.FromArgb(70, 0, 0, 0));
+        using var bolt = CreateBoltPath(new PointF(31.5f, 32f), 0);
+        using var boltShadow = CreateBoltPath(new PointF(33.5f, 34f), 0);
+        using var boltBrush = new SolidBrush(boltColor);
 
-        // Mic symbol
-        using var white = new SolidBrush(Color.White);
-        g.FillRoundedRectangle(white, new Rectangle(24, 10, 16, 24), 8);
-        using var pen = new System.Drawing.Pen(Color.White, 3);
-        g.DrawArc(pen, 12, 22, 40, 24, 0, 180);
-        g.DrawLine(pen, 32, 46, 32, 54);
+        g.FillEllipse(outerRing, 6, 6, 52, 52);
+        g.FillEllipse(innerDisc, 12, 12, 40, 40);
+        g.FillPath(shadow, boltShadow);
+        g.FillPath(boltBrush, bolt);
 
         nint hIcon = bmp.GetHicon();
         return Icon.FromHandle(hIcon);
+    }
+
+    private static System.Drawing.Drawing2D.GraphicsPath CreateBoltPath(PointF center, float rotationDegrees)
+    {
+        var path = new System.Drawing.Drawing2D.GraphicsPath();
+        var points = new[]
+        {
+            new PointF(11f, -26f),
+            new PointF(-8f, -2f),
+            new PointF(2f, -2f),
+            new PointF(-11f, 26f),
+            new PointF(9f, 2f),
+            new PointF(-1f, 2f),
+        };
+
+        using var matrix = new System.Drawing.Drawing2D.Matrix();
+        matrix.Rotate(rotationDegrees);
+        matrix.Translate(center.X, center.Y, System.Drawing.Drawing2D.MatrixOrder.Append);
+        path.AddPolygon(points);
+        path.Transform(matrix);
+        return path;
     }
 
     public void Dispose()

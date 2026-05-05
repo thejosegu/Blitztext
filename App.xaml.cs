@@ -70,7 +70,7 @@ public partial class App : Application
         _settingsWindow = new SettingsWindow(config);
         _settingsWindow.OnSaved += updatedConfig =>
         {
-            // hotkeys and config already updated inside SettingsWindow
+            _app?.RefreshTrayStatus();
         };
         _settingsWindow.Show();
     }

@@ -145,9 +145,21 @@ public class NounsTab : UserControl
         {
             _selected.Add(index);
             row.SetResourceReference(Border.BackgroundProperty, "AccentBrush");
-            lbl.Foreground = new SolidColorBrush(Colors.Black);
+            lbl.Foreground = GetReadableForeground(row.Background);
         }
         UpdateDeleteButton();
+    }
+
+    private static Brush GetReadableForeground(Brush? background)
+    {
+        if (background is SolidColorBrush solid)
+        {
+            var color = solid.Color;
+            var brightness = ((color.R * 299) + (color.G * 587) + (color.B * 114)) / 1000;
+            return new SolidColorBrush(brightness >= 140 ? Colors.Black : Colors.White);
+        }
+
+        return new SolidColorBrush(Colors.White);
     }
 
     private void UpdateDeleteButton()

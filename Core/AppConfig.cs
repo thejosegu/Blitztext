@@ -8,7 +8,7 @@ namespace Blitztext.Core;
 
 /// <summary>
 /// JSON-backed application configuration.
-/// API key is stored in a separate .env file (not in config.json).
+/// API key is stored in a separate .env file next to the executable.
 /// </summary>
 public class AppConfig
 {
@@ -47,8 +47,7 @@ public class AppConfig
     ];
 
     // ── storage ───────────────────────────────────────────────────────
-    // %APPDATA%\Blitztext — Debug und Release EXE teilen dieselbe Config
-    private static string AppDir
+    private static string LegacyAppDataDir
     {
         get
         {
@@ -60,11 +59,26 @@ public class AppConfig
         }
     }
 
+    private static string ProgramDir =>
+        AppContext.BaseDirectory;
+
     private static string ConfigPath =>
-        Path.Combine(AppDir, "config.json");
+        Path.Combine(ProgramDir, "config.json");
+
+    private static string LegacyConfigPath =>
+        Path.Combine(LegacyAppDataDir, "config.json");
 
     private static string EnvPath =>
-        Path.Combine(AppDir, ".env");
+        Path.Combine(ProgramDir, ".env");
+
+    private static string LegacyEnvPath =>
+        Path.Combine(LegacyAppDataDir, ".env");
+
+    private static string PreferredConfigPath =>
+        File.Exists(ConfigPath) ? ConfigPath : LegacyConfigPath;
+
+    private static string PreferredEnvPath =>
+        File.Exists(EnvPath) ? EnvPath : LegacyEnvPath;
 
     // ── backing store ─────────────────────────────────────────────────
     private JsonObject _data = new();
@@ -77,20 +91,23 @@ public class AppConfig
     {
         _data = new JsonObject();
 
-        if (File.Exists(ConfigPath))
+        var configPath = PreferredConfigPath;
+        if (File.Exists(configPath))
         {
             try
             {
-                var json = File.ReadAllText(ConfigPath);
+                var json = File.ReadAllText(configPath);
                 _data = JsonNode.Parse(json)?.AsObject() ?? new JsonObject();
             }
             catch { /* use empty */ }
         }
 
-        // Load API key from .env (GROQ_API_KEY=...)
-        if (File.Exists(EnvPath))
+        // Load API key from .env next to the executable.
+        // Fall back to the legacy AppData location so existing installs keep working.
+        var envPath = PreferredEnvPath;
+        if (File.Exists(envPath))
         {
-            foreach (var line in File.ReadAllLines(EnvPath))
+            foreach (var line in File.ReadAllLines(envPath))
             {
                 var idx = line.IndexOf('=');
                 if (idx > 0)
@@ -127,19 +144,35 @@ public class AppConfig
 
         // Other properties are written via their setters already
 
-        File.WriteAllText(ConfigPath,
-            _data.ToJsonString(opts),
-            System.Text.Encoding.UTF8);
+        WriteTextWithFallback(
+            primaryPath: ConfigPath,
+            fallbackPath: LegacyConfigPath,
+            content: _data.ToJsonString(opts));
 
-        // Persist API key to .env
-        File.WriteAllText(EnvPath,
-            $"GROQ_API_KEY={ApiKey}\n",
-            System.Text.Encoding.UTF8);
+        // Persist API key to .env next to the executable, or AppData if local write fails.
+        WriteTextWithFallback(
+            primaryPath: EnvPath,
+            fallbackPath: LegacyEnvPath,
+            content: $"GROQ_API_KEY={ApiKey}\n");
+    }
+
+    private static void WriteTextWithFallback(string primaryPath, string fallbackPath, string content)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(primaryPath)!);
+            File.WriteAllText(primaryPath, content, System.Text.Encoding.UTF8);
+        }
+        catch
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(fallbackPath)!);
+            File.WriteAllText(fallbackPath, content, System.Text.Encoding.UTF8);
+        }
     }
 
     // ── typed properties ──────────────────────────────────────────────
 
-    /// <summary>API key — read from environment (GROQ_API_KEY), written to .env.</summary>
+    /// <summary>API key — read from environment (GROQ_API_KEY), written to .env next to the executable.</summary>
     public string ApiKey
     {
         get => Environment.GetEnvironmentVariable("GROQ_API_KEY") ?? _data["api_key"]?.GetValue<string>() ?? "";

@@ -7,13 +7,16 @@ namespace Blitztext.Core;
 
 /// <summary>
 /// Thread-safe in-memory ring buffer log (max 100 entries).
-/// Also auto-writes to %APPDATA%\Blitztext\blitztext.log for crash analysis.
+/// Also auto-writes to blitztext.log next to the executable for crash analysis.
 /// </summary>
 public static class AppLog
 {
     private static readonly Lock _lock = new();
     private static readonly Queue<string> _entries = new(100);
     private const int MaxEntries = 100;
+    private static readonly string _fallbackLogFilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Blitztext", "blitztext.log");
 
     public static string LastTranscript { get; private set; } = "";
     public static string LastProcessed  { get; private set; } = "";
@@ -21,9 +24,7 @@ public static class AppLog
     public static string LastError      { get; private set; } = "";
 
     public static string LogFilePath =>
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Blitztext", "blitztext.log");
+        Path.Combine(AppContext.BaseDirectory, "blitztext.log");
 
     public static void Add(string message)
     {
@@ -68,10 +69,22 @@ public static class AppLog
     {
         try
         {
-            var dir = Path.GetDirectoryName(LogFilePath)!;
-            Directory.CreateDirectory(dir);
-            File.AppendAllText(LogFilePath, entry + Environment.NewLine, System.Text.Encoding.UTF8);
+            AppendWithFallback(LogFilePath, _fallbackLogFilePath, entry + Environment.NewLine);
         }
         catch { /* never crash on logging */ }
+    }
+
+    private static void AppendWithFallback(string primaryPath, string fallbackPath, string content)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(primaryPath)!);
+            File.AppendAllText(primaryPath, content, System.Text.Encoding.UTF8);
+        }
+        catch
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(fallbackPath)!);
+            File.AppendAllText(fallbackPath, content, System.Text.Encoding.UTF8);
+        }
     }
 }

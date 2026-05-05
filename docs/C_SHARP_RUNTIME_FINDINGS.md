@@ -4,7 +4,7 @@ Stand: 2026-05-05
 
 ## Wichtigste Erkenntnisse
 
-- Die C#-App benutzt nicht die Repo-Konfiguration, sondern `%APPDATA%\Blitztext\config.json`.
+- Die C#-App benutzt bevorzugt die Laufzeitdateien neben der EXE (`config.json`, `.env`, `blitztext.log`) und faellt nur bei Schreibproblemen auf AppData zurueck.
 - Mehrere vermeintliche Toggle-Probleme waren in Wahrheit Modus-Diskrepanzen zwischen Repo-`config.json` und der echten Laufzeit-Config.
 - Tray-Status und Overlay konnten auseinanderlaufen, wenn UI-Updates asynchron eingeplant wurden.
 - Ein Teil der Startprobleme lag nicht im Recorder, sondern im Hotkey-Zustand (`_activeMode`, Debounce, Auto-Repeat, Start-Fehler-Rollback).
@@ -14,9 +14,13 @@ Stand: 2026-05-05
 
 ### 1. Falsche aktive Config
 
-Die C#-App liest aus:
+Die C#-App liest bevorzugt aus:
 
-`C:\Users\Sebastian\AppData\Roaming\Blitztext\config.json`
+`<Programmordner>\config.json`
+
+und faellt andernfalls auf:
+
+`C:\Users\<Benutzer>\AppData\Roaming\Blitztext\config.json`
 
 Nicht aus:
 
@@ -100,9 +104,13 @@ Im Log steht jetzt direkt nach dem Start explizit:
 
 Damit laesst sich sofort erkennen, welcher Modus wirklich aktiv ist.
 
-Logdatei:
+Logdatei bevorzugt:
 
-`C:\Users\Sebastian\AppData\Roaming\Blitztext\blitztext.log`
+`<Programmordner>\blitztext.log`
+
+Fallback:
+
+`C:\Users\<Benutzer>\AppData\Roaming\Blitztext\blitztext.log`
 
 ## Aktueller Stand
 

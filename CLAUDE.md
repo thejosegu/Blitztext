@@ -52,15 +52,15 @@ HotkeyListener (Win32 WH_KEYBOARD_LL hook thread)
 | `Core/LocalTranscriber.cs` | Whisper.net GGML wrapper; lazy-loads and caches model; call `Unload()` to free VRAM |
 | `Core/Processor.cs` | ChatGPT/Groq chat completion for mode-specific prompts; `ApplySnippets` text replacement |
 | `Core/Injector.cs` | Raw Win32 clipboard (no WPF); `SendInput` Ctrl+V; Unicode typing fallback |
-| `Core/AppConfig.cs` | JSON config + `.env` persistence in `%APPDATA%\Blitztext\`; `DetectProvider()` checks key prefix |
-| `Core/AppLog.cs` | Ring buffer (100 entries) + async file append to `%APPDATA%\Blitztext\blitztext.log` |
+| `Core/AppConfig.cs` | `config.json` + `.env` beside the executable; falls back to AppData if the local folder is not writable; `DetectProvider()` checks key prefix |
+| `Core/AppLog.cs` | Ring buffer (100 entries) + async file append to `blitztext.log` beside the executable, with AppData fallback |
 | `Tray/TrayManager.cs` | `Shell_NotifyIcon` tray icon; runtime GDI+ icon generation; context menu |
 | `UI/RecordingOverlay.xaml.cs` | Top-center blinking dot overlay (red = recording, amber = processing) |
 | `UI/SettingsWindow.xaml.cs` | Tabbed settings UI; delegates to `UI/Tabs/` controllers |
 
 ### Configuration & storage
 
-All runtime state lives in `%APPDATA%\Blitztext\` (never in the repo):
+Runtime state is stored beside the executable when possible, with AppData fallback if that folder is not writable:
 - `config.json` — hotkeys, prompts, snippets, model selection, all user prefs
 - `.env` — `GROQ_API_KEY=...` (read at startup, merged into config)
 - `blitztext.log` — ring-buffered operation log
