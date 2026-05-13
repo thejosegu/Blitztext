@@ -7,24 +7,20 @@ namespace Blitztext.Core;
 
 /// <summary>
 /// Thread-safe in-memory ring buffer log (max 100 entries).
-/// Also auto-writes to blitztext.log next to the executable for crash analysis.
+/// Also auto-writes to blitztext.log at the active runtime storage path for crash analysis.
 /// </summary>
 public static class AppLog
 {
     private static readonly Lock _lock = new();
     private static readonly Queue<string> _entries = new(100);
     private const int MaxEntries = 100;
-    private static readonly string _fallbackLogFilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Blitztext", "blitztext.log");
 
     public static string LastTranscript { get; private set; } = "";
     public static string LastProcessed  { get; private set; } = "";
     public static string LastMode       { get; private set; } = "";
     public static string LastError      { get; private set; } = "";
 
-    public static string LogFilePath =>
-        Path.Combine(AppContext.BaseDirectory, "blitztext.log");
+    public static string LogFilePath => AppStorage.LogPath;
 
     public static void Add(string message)
     {
@@ -69,12 +65,12 @@ public static class AppLog
     {
         try
         {
-            AppendWithFallback(LogFilePath, _fallbackLogFilePath, entry + Environment.NewLine);
+            AppendWithFallback(LogFilePath, AppStorage.LogFallbackPath, entry + Environment.NewLine);
         }
         catch { /* never crash on logging */ }
     }
 
-    private static void AppendWithFallback(string primaryPath, string fallbackPath, string content)
+    private static void AppendWithFallback(string primaryPath, string? fallbackPath, string content)
     {
         try
         {
@@ -83,6 +79,9 @@ public static class AppLog
         }
         catch
         {
+            if (string.IsNullOrEmpty(fallbackPath))
+                throw;
+
             Directory.CreateDirectory(Path.GetDirectoryName(fallbackPath)!);
             File.AppendAllText(fallbackPath, content, System.Text.Encoding.UTF8);
         }

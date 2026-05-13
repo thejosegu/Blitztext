@@ -15,6 +15,7 @@ namespace Blitztext.UI;
 public partial class SettingsWindow : Window
 {
     private readonly AppConfig _config;
+    private readonly IAutostartService _autostartService;
     public event Action<AppConfig>? OnSaved;
 
     // ── Tab panels (built programmatically into TabItem.Content) ─────
@@ -27,9 +28,10 @@ public partial class SettingsWindow : Window
 
     private DispatcherTimer? _feedbackTimer;
 
-    public SettingsWindow(AppConfig config)
+    public SettingsWindow(AppConfig config, IAutostartService autostartService)
     {
         _config = config;
+        _autostartService = autostartService;
         InitializeComponent();
         ApplyTheme();
         BuildTabs();
@@ -128,7 +130,7 @@ public partial class SettingsWindow : Window
     }
 
     // ── save / cancel ─────────────────────────────────────────────────
-    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         _general.Save(_config);
         _hotkeys.Save(_config);
@@ -136,7 +138,8 @@ public partial class SettingsWindow : Window
         _snippets.Save(_config);
         _nouns.Save(_config);
 
-        ApplyAutostart(_config.Autostart);
+        try { await _autostartService.ApplyAsync(_config.Autostart); }
+        catch (Exception ex) { AppLog.Add($"Autostart-Fehler: {ex.Message}"); }
 
         try { _config.Save(); }
         catch (Exception ex) { AppLog.Add($"Config-Fehler: {ex.Message}"); }
@@ -146,21 +149,4 @@ public partial class SettingsWindow : Window
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();
-
-    // ── autostart ────────────────────────────────────────────────────
-    private static void ApplyAutostart(bool enable)
-    {
-        const string RegPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        var exe = $"\"{Process.GetCurrentProcess().MainModule?.FileName}\"";
-
-        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(RegPath, writable: true);
-        if (key == null) return;
-
-        if (enable)
-            key.SetValue("Blitztext", exe);
-        else
-        {
-            try { key.DeleteValue("Blitztext"); } catch { /* already gone */ }
-        }
-    }
 }

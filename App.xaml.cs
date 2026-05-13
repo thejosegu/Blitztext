@@ -8,6 +8,7 @@ public partial class App : Application
 {
     private BlitztextApp? _app;
     private SettingsWindow? _settingsWindow;
+    private IAutostartService? _autostartService;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -36,6 +37,7 @@ public partial class App : Application
         try { NativeMethods.SetProcessDpiAwarenessContext(-4); } catch { }
 
         var config = new AppConfig();
+        _autostartService = AutostartServiceFactory.CreateDefault();
         _app = new BlitztextApp(config);
 
         var overlay = new RecordingOverlay();
@@ -67,7 +69,7 @@ public partial class App : Application
             return;
         }
 
-        _settingsWindow = new SettingsWindow(config);
+        _settingsWindow = new SettingsWindow(config, _autostartService!);
         _settingsWindow.OnSaved += updatedConfig =>
         {
             _app?.RefreshTrayStatus();

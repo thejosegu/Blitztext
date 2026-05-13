@@ -165,7 +165,7 @@ public sealed class TrayManager : IDisposable
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.Transparent);
 
-        Color boltColor = status switch
+        Color statusColor = status switch
         {
             TrayStatus.Recording  => Color.FromArgb(220, 60, 60),
             TrayStatus.Processing => Color.FromArgb(230, 180, 0),
@@ -173,33 +173,35 @@ public sealed class TrayManager : IDisposable
             _                     => Color.FromArgb(255, 255, 255),
         };
 
-        using var outerRing = new SolidBrush(Color.FromArgb(255, 14, 122, 209));
-        using var innerDisc = new SolidBrush(Color.FromArgb(255, 20, 20, 20));
-        using var shadow = new SolidBrush(Color.FromArgb(70, 0, 0, 0));
-        using var bolt = CreateBoltPath(new PointF(31.5f, 32f), 0);
-        using var boltShadow = CreateBoltPath(new PointF(33.5f, 34f), 0);
-        using var boltBrush = new SolidBrush(boltColor);
+        using var circleBrush = new SolidBrush(statusColor);
+        using var bolt = CreateBoltPath(new PointF(31.5f, 32f), 1.12f, 0);
+        using var boltBrush = new SolidBrush(Color.Black);
+        using var boltPen = new System.Drawing.Pen(Color.Black, 4.2f)
+        {
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round,
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+        };
 
-        g.FillEllipse(outerRing, 6, 6, 52, 52);
-        g.FillEllipse(innerDisc, 12, 12, 40, 40);
-        g.FillPath(shadow, boltShadow);
+        g.FillEllipse(circleBrush, 6, 6, 52, 52);
         g.FillPath(boltBrush, bolt);
+        g.DrawPath(boltPen, bolt);
 
         nint hIcon = bmp.GetHicon();
         return Icon.FromHandle(hIcon);
     }
 
-    private static System.Drawing.Drawing2D.GraphicsPath CreateBoltPath(PointF center, float rotationDegrees)
+    private static System.Drawing.Drawing2D.GraphicsPath CreateBoltPath(PointF center, float scale, float rotationDegrees)
     {
         var path = new System.Drawing.Drawing2D.GraphicsPath();
         var points = new[]
         {
-            new PointF(11f, -26f),
-            new PointF(-8f, -2f),
-            new PointF(2f, -2f),
-            new PointF(-11f, 26f),
-            new PointF(9f, 2f),
-            new PointF(-1f, 2f),
+            new PointF(11f * scale, -26f * scale),
+            new PointF(-8f * scale, -2f * scale),
+            new PointF(2f * scale, -2f * scale),
+            new PointF(-11f * scale, 26f * scale),
+            new PointF(9f * scale, 2f * scale),
+            new PointF(-1f * scale, 2f * scale),
         };
 
         using var matrix = new System.Drawing.Drawing2D.Matrix();

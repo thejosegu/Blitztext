@@ -24,6 +24,17 @@ dotnet publish -c Release /p:PublishProfile=LocalSlim
 
 There are no automated tests in this repository.
 
+## VS Code + MSIX
+
+The main WPF project can be developed fully in VS Code.
+
+The packaging project `Blitztext.Package/Blitztext.Package.wapproj` is different: it depends on Microsoft WAP/MSIX tooling that is normally provided by Visual Studio or Visual Studio Build Tools. There is currently no equivalent VS Code extension in this repo workflow that replaces those packaging targets.
+
+Practical consequence:
+
+- Use VS Code for app code, manifest edits, and packaging-file maintenance.
+- Use installed Microsoft packaging tooling to actually build or validate the `.wapproj`.
+
 ## Architecture
 
 The pipeline is linear and locked: only one recording/transcription/injection can run at a time via a `SemaphoreSlim(1,1)` in `BlitztextApp.cs`.
