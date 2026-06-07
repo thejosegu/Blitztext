@@ -15,11 +15,11 @@ dotnet build
 # Run (launches the tray app)
 dotnet run
 
-# Publish – self-contained single-file (large, no .NET runtime required)
+# Publish – self-contained single-file → dist\portable\
 dotnet publish -c Release /p:PublishProfile=LocalPortable
 
-# Publish – framework-dependent single-file (small, requires installed runtime)
-dotnet publish -c Release /p:PublishProfile=LocalSlim
+# Publish – self-contained single-file (komprimiert) → dist\portableCompressed\
+dotnet publish -c Release /p:PublishProfile=LocalPortableCompressed
 ```
 
 There are no automated tests in this repository.

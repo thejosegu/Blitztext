@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Blitztext — Einstellungen"
-    Icon="/Assets/icon.ico"
+    Icon="/src/Assets/icon.ico"
     Width="580" Height="800"
     MinWidth="580" MinHeight="800"
     WindowStartupLocation="CenterScreen"

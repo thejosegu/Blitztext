@@ -1,3 +1,6 @@
+# Secrets – niemals einchecken
+.env
+
 bin/
 obj/
 .vs/
@@ -7,6 +10,8 @@ obj/
 *.sln.docstates
 
 # Publish outputs
+dist/
+distWorks/
 publish/
 publish-portable/
 publish-slim/

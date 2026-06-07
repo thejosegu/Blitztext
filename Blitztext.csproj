@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <RootNamespace>Blitztext</RootNamespace>
     <AssemblyName>Blitztext</AssemblyName>
-    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <ApplicationIcon>src\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <!-- Single-file publish settings -->
@@ -38,12 +38,12 @@
 
 
   <ItemGroup>
-    <Resource Include="Assets\icon.ico" />
-    <Resource Include="Assets\icon.png" />
-    <None Update="Assets\icon.ico">
+    <Resource Include="src\Assets\icon.ico" />
+    <Resource Include="src\Assets\icon.png" />
+    <None Update="src\Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\icon.png">
+    <None Update="src\Assets\icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
