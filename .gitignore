@@ -1,6 +1,7 @@
 # Secrets – niemals einchecken
 .env
 
+# Build-Artefakte
 bin/
 obj/
 .vs/
@@ -20,12 +21,13 @@ publish-slim/
 # Stray root files
 index.html
 
-
-
+# Interne Doku & Tooling (nicht öffentlich)
 docs/
-Blitztext.Package/
 CLAUDE.md
 .claude/
+
+# MSIX Packaging (derzeit nicht veröffentlicht)
+Blitztext.Package/
 
 # Local runtime config
 config.json
