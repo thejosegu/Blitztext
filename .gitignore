@@ -16,6 +16,13 @@ publish/
 publish-portable/
 publish-slim/
 
+
+
+docs/
+Blitztext.Package/
+CLAUDE.md
+.claude/
+
 # Local runtime config
 config.json
 
